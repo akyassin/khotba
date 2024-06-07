@@ -1,0 +1,25 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Speech {
+  id            Int      @id @default(autoincrement())
+  title         String
+  body          String
+  languageId    Int
+  Language      Language  @relation(fields: [languageId], references: [id])
+  relatedSpeechId Int?    @unique
+  RelatedSpeech  Speech?  @relation("SpeechToRelated", fields: [relatedSpeechId], references: [id])
+  InverseRelated Speech?  @relation("SpeechToRelated")
+}
+
+model Language {
+  id      Int      @id @default(autoincrement())
+  name    String
+  speeches Speech[]
+}

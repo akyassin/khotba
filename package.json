@@ -20,7 +20,10 @@
     "@remix-run/serve": "^2.9.2",
     "bcrypt": "^5.1.1",
     "isbot": "^4.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "quill": "^2.0.2",
+    "react-quill": "^2.0.0",
+    "react-select": "^5.8.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.9.2",

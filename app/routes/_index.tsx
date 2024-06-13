@@ -49,9 +49,17 @@ export default function Index() {
   };
 
   return (
-    <div className="flex justify-center min-h-screen bg-gray-50 pt-20">
-      <div className="w-2/3 ">
-        <h1 className="text-3xl font-bold mb-8 text-center">Speeches</h1>
+    <div className="flex justify-center min-h-screen bg-gray-50">
+      <div className="w-2/3 mt-16">
+        <div className="flex justify-between mb-6">
+          <h1 className="text-3xl font-bold text-center">Speeches</h1>
+          <Link
+            to={"/speeches/create"}
+            className="bg-green-500 text-white px-3 py-2 rounded"
+          >
+            Create New Speech
+          </Link>
+        </div>
         {Object.entries(speechesByLanguage).map(([language, speeches]) => (
           <div key={language} className="mb-6">
             <button

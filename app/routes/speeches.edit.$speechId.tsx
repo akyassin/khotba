@@ -1,115 +1,98 @@
-import { Translation } from "@prisma/client";
+import { useLoaderData, useActionData } from "@remix-run/react";
 import {
-  ActionFunction,
   LoaderFunction,
+  ActionFunction,
   redirect,
   json,
 } from "@remix-run/node";
-import { useLoaderData, Form, useActionData } from "@remix-run/react";
 import { prisma } from "~/utils/prisma.server";
+import SpeechForm from "~/components/SpeechForm"; // Adjust the import path
 
 export const loader: LoaderFunction = async ({ params }) => {
+  const { speechId } = params;
   const speech = await prisma.speech.findUnique({
-    where: { id: Number(params.speechId) },
-    include: { translations: true },
+    where: { id: parseInt(speechId as string) },
+  });
+  const languages = await prisma.language.findMany();
+  const speeches = await prisma.speech.findMany({
+    where: {
+      NOT: {
+        id: parseInt(speechId as string),
+      },
+    },
   });
 
   if (!speech) {
-    throw new Response("Not Found", { status: 404 });
+    throw new Response("Speech not found", { status: 404 });
   }
 
-  return json({ speech });
+  return { speech, languages, speeches };
 };
 
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const title = formData.get("title");
   const body = formData.get("body");
-  const arabicTranslation = formData.get("arabicTranslation");
-  const swedishTranslation = formData.get("swedishTranslation");
+  const languageId = formData.get("languageId");
+  const relatedSpeechId = formData.get("relatedSpeechId");
 
   if (
     typeof title !== "string" ||
     typeof body !== "string" ||
-    typeof arabicTranslation !== "string" ||
-    typeof swedishTranslation !== "string"
+    typeof languageId !== "string"
   ) {
     return json({ error: "Invalid form data" }, { status: 400 });
   }
 
-  await prisma.speech.update({
-    where: { id: Number(params.speechId) },
-    data: {
-      title,
-      body,
-      translations: {
-        updateMany: [
-          {
-            where: { language: "Arabic" },
-            data: { text: arabicTranslation },
-          },
-          {
-            where: { language: "Swedish" },
-            data: { text: swedishTranslation },
-          },
-        ],
+  try {
+    const { speechId } = params;
+    await prisma.speech.update({
+      where: { id: parseInt(speechId as string) },
+      data: {
+        title,
+        body,
+        languageId: parseInt(languageId),
+        relatedSpeechId: relatedSpeechId
+          ? parseInt(relatedSpeechId as string)
+          : null,
       },
-    },
-  });
+    });
 
-  return redirect(`/speeches/${params.speechId}`);
+    return redirect("/");
+  } catch (error) {
+    const err = error as { code?: string };
+
+    if (err.code === "P2002") {
+      return json(
+        { error: "This translation is connected to another khotba." },
+        { status: 500 }
+      );
+    } else {
+      return json({ error: "Failed to update speech" }, { status: 500 });
+    }
+  }
 };
 
 export default function EditSpeech() {
-  const { speech } = useLoaderData<typeof loader>();
+  const { speech, languages, speeches } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
-    <div>
-      <h1>Edit Speech</h1>
-      {actionData?.error && <p style={{ color: "red" }}>{actionData.error}</p>}
-      <Form method="post">
-        <div>
-          <label>
-            Title:{" "}
-            <input type="text" name="title" defaultValue={speech.title} />
-          </label>
+    <div className="flex justify-center min-h-screen bg-gray-100">
+      <div className="w-full sm:w-2/3 md:w-90% mt-16">
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-gray-700 text-white p-4 rounded-t">
+          <h2 className="text-2xl font-semibold mb-2 sm:mb-0">Edit Speech</h2>
         </div>
-        <div>
-          <label>
-            Body: <textarea name="body" defaultValue={speech.body}></textarea>
-          </label>
-        </div>
-        <div>
-          <label>
-            Arabic Translation:{" "}
-            <textarea
-              name="arabicTranslation"
-              defaultValue={
-                speech.translations.find(
-                  (t: Translation) => t.language === "Arabic"
-                )?.text
-              }
-            ></textarea>
-          </label>
-        </div>
-        <div>
-          <label>
-            Swedish Translation:{" "}
-            <textarea
-              name="swedishTranslation"
-              defaultValue={
-                speech.translations.find(
-                  (t: Translation) => t.language === "Swedish"
-                )?.text
-              }
-            ></textarea>{" "}
-          </label>
-        </div>
-        <button type="submit" style={{ display: "block", marginTop: "10px" }}>
-          Save
-        </button>
-      </Form>
+        <SpeechForm
+          speech={speech}
+          languages={languages}
+          speeches={speeches}
+          actionData={actionData}
+          onSubmit={(data) => {
+            // handle form submission
+          }}
+        />
+      </div>
     </div>
   );
 }

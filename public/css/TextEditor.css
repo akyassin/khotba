@@ -1,0 +1,9 @@
+.ql-editor {
+  min-height: 200px;
+  direction: rtl;  
+  font-size: 20px;
+}
+
+.quill{
+  margin-top: 5px;
+}
